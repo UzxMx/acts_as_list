@@ -1,8 +1,8 @@
 module ActiveRecord::Acts::List::SequentialUpdatesMethodDefiner #:nodoc:
   def self.call(caller_class, column, sequential_updates_option)
     caller_class.class_eval do
-      define_method :sequential_updates? do
-        if !defined?(@sequential_updates)
+      define_method :"sequential_updates_for_#{column}?" do
+        if !instance_variable_defined?(:"@sequential_updates_for_#{column}")
           if sequential_updates_option.nil?
             table_exists =
               if ActiveRecord::VERSION::MAJOR >= 5
@@ -11,16 +11,16 @@ module ActiveRecord::Acts::List::SequentialUpdatesMethodDefiner #:nodoc:
                 caller_class.connection.table_exists?(caller_class.table_name)
               end
             index_exists = caller_class.connection.index_exists?(caller_class.table_name, column, unique: true)
-            @sequential_updates = table_exists && index_exists
+            instance_variable_set :"@sequential_updates_for_#{column}", table_exists && index_exists
           else
-            @sequential_updates = sequential_updates_option
+            instance_variable_set :"@sequential_updates_for_#{column}", sequential_updates_option
           end
         else
-          @sequential_updates
+          instance_variable_get :"@sequential_updates_for_#{column}"
         end
       end
 
-      private :sequential_updates?
+      private :"sequential_updates_for_#{column}?"
     end
   end
 end

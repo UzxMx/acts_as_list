@@ -12,23 +12,25 @@ module ActiveRecord::Acts::List::PositionColumnMethodDefiner #:nodoc:
 
   def self.define_class_methods(caller_class, position_column)
     caller_class.class_eval do
-      define_singleton_method :quoted_position_column do
-        @_quoted_position_column ||= connection.quote_column_name(position_column)
+      define_singleton_method :"quoted_position_column_for_#{position_column}" do
+        sym = :"@_quoted_position_column_for_#{position_column}"
+        instance_variable_get(sym) || instance_variable_set(sym, connection.quote_column_name(position_column))
       end
 
-      define_singleton_method :quoted_position_column_with_table_name do
-        @_quoted_position_column_with_table_name ||= "#{caller_class.quoted_table_name}.#{quoted_position_column}"
+      define_singleton_method :"quoted_position_column_with_table_name_for_#{position_column}" do
+        sym = :"@_quoted_position_column_with_table_name_for_#{position_column}"
+        instance_variable_get(sym) || instance_variable_set(sym, "#{caller_class.quoted_table_name}.#{send(:"quoted_position_column_for_#{position_column}")}")
       end
 
-      define_singleton_method :decrement_all do
-        update_all_with_touch "#{quoted_position_column} = (#{quoted_position_column_with_table_name} - 1)"
+      define_singleton_method :"decrement_all_for_#{position_column}" do
+        send :"update_all_with_touch_for_#{position_column}", "#{send(:"quoted_position_column_for_#{position_column}")} = (#{send(:"quoted_position_column_with_table_name_for_#{position_column}")} - 1)"
       end
 
-      define_singleton_method :increment_all do
-        update_all_with_touch "#{quoted_position_column} = (#{quoted_position_column_with_table_name} + 1)"
+      define_singleton_method :"increment_all_for_#{position_column}" do
+        send :"update_all_with_touch_for_#{position_column}", "#{send(:"quoted_position_column_for_#{position_column}")} = (#{send(:"quoted_position_column_with_table_name_for_#{position_column}")} + 1)"
       end
 
-      define_singleton_method :update_all_with_touch do |updates|
+      define_singleton_method :"update_all_with_touch_for_#{position_column}" do |updates|
         update_all(updates << touch_record_sql)
       end
 
@@ -42,15 +44,17 @@ module ActiveRecord::Acts::List::PositionColumnMethodDefiner #:nodoc:
 
   def self.define_instance_methods(caller_class, position_column)
     caller_class.class_eval do
-      attr_reader :position_changed
+      attr_reader :"position_for_#{position_column}_changed"
 
-      define_method :position_column do
+      delegate :"quoted_position_column_for_#{position_column}", :"quoted_position_column_with_table_name_for_#{position_column}", to: caller_class
+
+      define_method :"position_column_for_#{position_column}" do
         position_column
       end
 
       define_method :"#{position_column}=" do |position|
         write_attribute(position_column, position)
-        @position_changed = true
+        instance_variable_set(:"@position_for_#{position_column}_changed", true)
       end
 
       define_method :touch_record_sql do
