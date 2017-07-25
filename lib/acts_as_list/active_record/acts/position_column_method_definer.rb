@@ -44,7 +44,7 @@ module ActiveRecord::Acts::List::PositionColumnMethodDefiner #:nodoc:
 
   def self.define_instance_methods(caller_class, position_column)
     caller_class.class_eval do
-      attr_reader :"position_for_#{position_column}_changed"
+      attr_reader :"position_changed_for_#{position_column}"
 
       delegate :"quoted_position_column_for_#{position_column}", :"quoted_position_column_with_table_name_for_#{position_column}", to: caller_class
 
@@ -54,7 +54,7 @@ module ActiveRecord::Acts::List::PositionColumnMethodDefiner #:nodoc:
 
       define_method :"#{position_column}=" do |position|
         write_attribute(position_column, position)
-        instance_variable_set(:"@position_for_#{position_column}_changed", true)
+        instance_variable_set(:"@position_changed_for_#{position_column}", true)
       end
 
       define_method :touch_record_sql do
